@@ -1,7 +1,4 @@
-"""Run every analysis in turn and write the results to results/ (or --out).
-
-The case-mix bootstrap takes about 15 minutes on a recent laptop; the other steps take seconds.
-"""
+# Runs every script in turn; results go to results/ (or --out).
 
 import casemix
 import decomposition

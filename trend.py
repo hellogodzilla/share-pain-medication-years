@@ -1,16 +1,7 @@
-"""Change in years lived from age 65 in the primary state between two waves.
+"""Change between waves (Fig. 4, Table S8), split into P and U (two-point Das Gupta).
 
-Fig. 4 and Additional file 1: Table S8.
-
-Windows: 2013 (wave 5) to 2021-22 (wave 9), and the two shorter windows 2015 (wave 6) to
-2019-20 (wave 8) and wave 8 to wave 9. Each uses the countries of the primary pool with at
-least 30 respondents in every age group in both waves. Each wave is estimated with its own
-weights, and the change is split into a pain (P) and a medication-use (U) component by the
-two-point symmetric Das Gupta formula, so that P + U equals the change.
-
-Intervals: Rao-Wu bootstrap over the PSUs of both waves, so that a panel member carries the
-same multiplier at both ends; the seed (20260923) is reset for each window. A country is
-left out of a replicate in which one of its age cells is empty.
+Countries of the primary pool with >= 30 respondents per age group in both waves. PSUs are
+resampled across both waves, so panel members keep one multiplier. Seed reset per window.
 """
 
 import numpy as np
@@ -26,7 +17,6 @@ YEAR = {5: 2013, 6: 2015, 8: 2019.5, 9: 2021.5}
 
 
 def change(den, ms, un, L):
-    """Years at the start and end wave (country x 2) and the P and U components of the change."""
     with np.errstate(divide="ignore", invalid="ignore"):
         p, u = ms / den, un / ms
     yrs = (L * p * u).sum(2)

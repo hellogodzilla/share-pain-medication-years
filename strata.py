@@ -1,16 +1,7 @@
-"""The primary outcome by sex and by education.
+"""By sex and education (Tables S10, S11), as domains of the full sample.
 
-Additional file 1: Tables S10 and S11.
-
-Sex and education are domains of the full sample: the primary estimator is applied to the
-records of one sex (or education level) at a time. The difference between women and men is
-computed on three sets of life tables: the two-sex EU27 2019 table for both sexes, so that
-it reflects prevalence only; the EU27 female and male tables; and each country's own
-female and male tables. Education has no life tables of its own and uses the two-sex
-EU27 table throughout.
-
-Intervals replay all 1,000 draws of the primary run (seed 20260922). A country drops out
-of a replicate only for the quantities whose domain has an empty age cell in that draw.
+Women vs men on three life tables: two-sex EU27, EU27 by sex, own country by sex.
+Education uses the two-sex EU27 table. Replays the draws of the primary run.
 """
 
 import warnings
@@ -27,8 +18,7 @@ EDUCATION = {"low": 1, "middle": 2, "high": 3}                # raeducl, ISCED-b
 
 
 def domain_years(tot, took_part, L):
-    """Primary-state years in one domain; NaN for a country with an empty age cell in a
-    wave it took part in. L is one life table, or one per country (rows)."""
+    # NaN if the domain has an empty age cell in a wave the country took part in
     den, _, un = tot
     with np.errstate(invalid="ignore", divide="ignore"):
         q = np.where(took_part[:, :, None], un / den, np.nan)
@@ -55,8 +45,6 @@ def quantities(d, cells, mult, took_part, life):
 
 
 def shown_for_education(d, countries):
-    """Table S11 shows countries where the low and high levels each have 30 or more
-    respondents in every age group."""
     n = d.groupby(["country", "raeducl", "age_group"]).size().unstack(fill_value=0)
     n = n.reindex(columns=AGE_GROUPS, fill_value=0)
     full = (n >= MIN_CELL).all(axis=1)

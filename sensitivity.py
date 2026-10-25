@@ -1,15 +1,7 @@
-"""Sensitivity analyses that need only the analysis-ready records (point estimates).
+"""Point-estimate sensitivity analyses: Tables S5, S13, S17.
 
-Additional file 1: Tables S5, S13 and S17.
-
-S13  the pain definition tightened to severe pain only, with the primary estimator.
-S5   pool composition (Israel added; Portugal, Malta or both left out) and the mean of the
-     2019-2021 EU27 life tables, on the pooled respondent-wave estimator. Country estimates
-     do not depend on the pool, so what changes is the range, the country mean, the
-     components and the profiles.
-S17  the primary outcome under each specification that can be computed from these files,
-     compared with the primary estimates (or, for specifications on the pooled estimator,
-     with the pooled estimates).
+S13: severe pain only. S5: pool composition and the 2019-2021 mean life table (pooled
+estimator). S17: specifications computable from these files.
 """
 
 import numpy as np
@@ -22,8 +14,6 @@ from sullivan import cell_codes, life_table, point_rates, pooled, totals, wave_c
 
 
 def severe_only(d, countries, L):
-    """Years in severe pain without weekly pain medication, and how many of each country's
-    age cells have fewer than 30 respondents in severe pain."""
     s = d.assign(ms=d.painlv.eq(3), un=d.painlv.eq(3) & d.painmed.eq(0))
     _, q = wave_combined(*totals(s, cell_codes(s, countries)))
     n = s[s.ms].groupby(["country", "age_group"]).size().unstack(fill_value=0)
@@ -32,7 +22,6 @@ def severe_only(d, countries, L):
 
 
 def compare(name, estimator, est, base):
-    """One row of Table S17: est and base are Series indexed by country."""
     common = est.index.intersection(base.index)
     change = est[common] - base[common]
     big = change.abs().idxmax()
@@ -44,7 +33,6 @@ def compare(name, estimator, est, base):
 
 
 def pool_scenario(name, p, q, L, countries):
-    """Range, extremes and Greece and Malta's components when the pool changes (Table S5)."""
     yrs, P, U = das_gupta(p, q / p, L)
     labels = pd.Series(profile(yrs, P, U), countries)
     U = pd.Series(U, countries)

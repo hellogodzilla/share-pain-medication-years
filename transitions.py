@@ -1,17 +1,8 @@
-"""Transitions between pain and medication states from wave 8 to wave 9.
+"""Wave 8 -> wave 9 transitions out of state A (Table S18, panel B; wave-8 counts of A).
 
-Additional file 1: Table S18, panel B, and the wave-8 counts of panel A.
-
-States: A, moderate-to-severe pain without reported weekly pain medication (the primary
-state); B, moderate-to-severe pain with weekly pain medication; C, no moderate-to-severe
-pain, with weekly pain medication; D, neither. Respondents in state A at wave 8 who were
-re-interviewed at wave 9 with a valid state are followed, with wave-8 weights, pooled over
-the 25 countries with wave-8 interviews (Portugal has none).
-
-Panel A also needs deaths from the wave-9 coverscreen and the reasons for non-interview,
-which are not in the analysis-ready files; it is not reproduced here.
-
-Intervals: Rao-Wu bootstrap over the design of the 25 countries (seed 20260922).
+A: moderate-to-severe pain, no weekly pain medication; B: pain with medication;
+C: medication, no moderate-to-severe pain; D: neither. Wave-8 weights, 25 countries.
+Deaths and non-response (panel A) are not in these files.
 """
 
 import numpy as np
@@ -29,8 +20,6 @@ def state(d):
 
 
 def shares(start, end, w):
-    """Weighted share of each wave-9 state among those in A at wave 8, and the share in B
-    among those who moved to B or C."""
     tot = pd.Series(w, start.index)[start.eq("A") & end.notna()].groupby(end).sum()
     tot = tot.reindex(STATES, fill_value=0.0)
     out = 100 * tot / tot.sum()

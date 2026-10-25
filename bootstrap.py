@@ -1,9 +1,8 @@
-"""Rao-Wu rescaled bootstrap over the released SHARE design, and percentile intervals.
+"""Rao-Wu rescaled bootstrap on the SHARE design.
 
-In every stratum with n_h > 1 PSUs, m_h = n_h - 1 PSUs are drawn with replacement and the
-number of times each PSU is drawn is multiplied by n_h / (n_h - 1). Every record of a PSU,
-in either wave, gets that multiplier on its weight. Strata with one PSU (after pooling
-within country) are certainty strata and keep multiplier 1.
+Per stratum with n_h > 1 PSUs: draw n_h - 1 PSUs with replacement, scale the counts by
+n_h / (n_h - 1). All records of a PSU (both waves) share the multiplier. Single-PSU
+strata keep 1.
 """
 
 import numpy as np
@@ -19,7 +18,6 @@ class RaoWu:
         self.n_psu = len(psus)
 
     def draw(self, rng):
-        """One replicate: a multiplier for every record."""
         m = np.ones(self.n_psu)
         for idx in self.strata:
             n = len(idx)
@@ -29,7 +27,6 @@ class RaoWu:
 
 
 def multipliers(d, n_reps, seed):
-    """The sequence of replicate multipliers for the records in d."""
     design = RaoWu(d)
     rng = np.random.default_rng(seed)
     for _ in range(n_reps):
@@ -37,12 +34,10 @@ def multipliers(d, n_reps, seed):
 
 
 def interval(x):
-    """2.5th and 97.5th percentiles over replicates (axis 0)."""
     return np.quantile(x, 0.025, axis=0), np.quantile(x, 0.975, axis=0)
 
 
 def ranks(x):
-    """Rank 1 is the highest value; works on one estimate or a replicates x countries array."""
     return (-x).argsort(-1).argsort(-1) + 1
 
 
@@ -52,7 +47,7 @@ def rank_interval(x):
 
 
 def spearman(a, b):
-    """Spearman correlation of two country vectors, or row by row for two replicate arrays."""
+    # also works row by row on replicate arrays
     a = pd.DataFrame(np.atleast_2d(a)).rank(axis=1).to_numpy()
     b = pd.DataFrame(np.atleast_2d(b)).rank(axis=1).to_numpy()
     a = a - a.mean(1, keepdims=True)

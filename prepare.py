@@ -1,8 +1,4 @@
-"""Analytic sample and survey design keys.
-
-Reads the analysis-ready SHARE files (see README) from the folder given by the
-environment variable SHARE_DATA, or by --data on the command line of each script.
-"""
+"""Sample selection and design keys shared by the scripts. Input files: see README."""
 
 import argparse
 import os
@@ -29,7 +25,6 @@ COUNTRIES = {
 
 
 def options(reps=1000):
-    """Command-line options shared by all scripts."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default=os.environ.get("SHARE_DATA", HERE / "data" / "share"),
                         help="folder with the analysis-ready SHARE files")
@@ -57,8 +52,7 @@ def clean_id(s):
 
 
 def eligible(d):
-    """Respondent interviews at 65+ with valid pain and medication answers and a positive
-    weight; codes the age group and the two pain states."""
+    # respondent interviews at 65+, valid pain and medication answers, weight > 0
     d = d[d.iwstat.eq(1) & d.agey.ge(65) & d.wtresp.gt(0)
           & d.painlv.isin([0, 1, 2, 3]) & d.painmed.isin([0, 1])].copy()
     d["country"] = d.country.astype(int).map(COUNTRIES)
@@ -69,7 +63,7 @@ def eligible(d):
     d["age_group"] = pd.cut(d.agey, AGE_EDGES, right=False, labels=AGE_GROUPS).astype(str)
     d["w"] = d.wtresp.astype("float64")
     d["ms"] = d.painlv.isin([2, 3])          # moderate or severe pain
-    d["un"] = d.ms & d.painmed.eq(0)         # primary state: ... without weekly pain medication
+    d["un"] = d.ms & d.painmed.eq(0)         # primary state
     return d.reset_index(drop=True)
 
 
@@ -79,10 +73,8 @@ def load_records(waves=(8, 9)):
 
 
 def primary_sample(d):
-    """Waves 8 and 9; European countries with at least 30 respondents in every age group.
-    Portugal did not take part in regular wave-8 fieldwork and contributes wave 9 only."""
     d = d[d.wave.isin([8, 9]) & d.country.ne("Israel")]
-    d = d[~(d.country.eq("Portugal") & d.wave.eq(8))]
+    d = d[~(d.country.eq("Portugal") & d.wave.eq(8))]       # no regular wave-8 fieldwork in PT
     return d[d.country.isin(countries_with_full_cells(d))].reset_index(drop=True)
 
 
@@ -93,12 +85,6 @@ def countries_with_full_cells(d):
 
 
 def add_design(d):
-    """Attach the stratum and primary sampling unit (PSU) of the SHARE gv_weights modules.
-
-    Keys are resolved at household level: a household keeps the first non-missing stratum
-    and PSU it has in any wave. A household without a PSU is its own PSU, and strata left
-    with a single PSU are pooled within country.
-    """
     design = pd.read_parquet(data_dir() / "share_design.parquet",
                              columns=["mergeid", "wave", "stratum1", "psu"])
     design["wave"] = design.wave.astype(int)
@@ -106,6 +92,8 @@ def add_design(d):
         design[c] = clean_id(design[c])
     d = d.merge(design, on=["mergeid", "wave"], how="left", validate="many_to_one")
 
+    # one stratum/PSU per household (first non-missing in any wave); a household with no
+    # PSU is its own PSU, and single-PSU strata are pooled within country
     for c in ["stratum1", "psu"]:
         first = (d.loc[d[c].notna(), ["hh", c]].sort_values(c, kind="stable")
                  .drop_duplicates("hh").set_index("hh")[c])
@@ -118,18 +106,17 @@ def add_design(d):
 
 
 def primary_records():
-    """The 78,127 respondent-wave records of the primary analysis, with design keys."""
+    # 78,127 respondent-wave records
     return add_design(primary_sample(load_records([8, 9])))
 
 
 def geo_codes(countries):
-    """Eurostat country codes, in the order given."""
     lt = pd.read_csv(PUBLIC / "life_tables.csv").drop_duplicates("country").set_index("country")
     return lt.geo.loc[countries].to_numpy()
 
 
 def population(countries, year):
-    """Eurostat baseline projection (proj_23np), country x age group, for 2022 or 2050."""
+    # Eurostat proj_23np, country x age group
     pop = pd.read_csv(PUBLIC / "population_2022_2050.csv").set_index(["geo", "age_group"])
     idx = pd.MultiIndex.from_product([geo_codes(countries), AGE_GROUPS])
     return pop.loc[idx, f"pop_{year}"].to_numpy(float).reshape(len(countries), -1)

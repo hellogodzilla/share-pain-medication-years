@@ -1,15 +1,7 @@
-"""Sullivan estimates of years lived from age 65 in the primary state.
+"""Sullivan estimates: Table 2, Fig. 1, Tables S4 and S14.
 
-Table 2, Fig. 1, Additional file 1: Tables S4 and S14.
-
-years = sum over age groups g of L_g * pi_g, with L_g = nL_g / l65 from the EU27 2019 life
-table and pi_g the prevalence of the primary state. Writing pi_g = p_g * u_g, p_g is the
-prevalence of moderate-to-severe pain and u_g the share of those in pain who report no
-weekly pain medication.
-
-Run as a script, it writes the primary estimates with their intervals (seed 20260922),
-the estimates on each country's own life table, and the four analysis units of Table S14
-with the pooled respondent-wave estimator (seed 20260920) beside them.
+years = sum_g L_g * p_g * u_g, with L_g = nL_g / l65 (EU27 2019), p_g the prevalence of
+moderate-to-severe pain and u_g the share of them with no weekly pain medication.
 """
 
 import numpy as np
@@ -24,7 +16,6 @@ POOLED_SEED = 20260920
 
 
 def life_table(country="EU27", sex="T", year=2019):
-    """Person-years lived in each age group per survivor at 65 (nL / l65)."""
     lt = pd.read_csv(PUBLIC / "life_tables.csv")
     lt = lt[lt.country.eq(country) & lt.sex.eq(sex) & lt.year.eq(year)]
     lt = lt.set_index("age_group").loc[AGE_GROUPS]
@@ -32,7 +23,6 @@ def life_table(country="EU27", sex="T", year=2019):
 
 
 def cell_codes(d, countries, waves=(8, 9)):
-    """Position of each record in the country x wave x age-group array."""
     shape = (len(countries), len(waves), len(AGE_GROUPS))
     code = np.ravel_multi_index((pd.Categorical(d.country, countries).codes,
                                  pd.Categorical(d.wave, list(waves)).codes,
@@ -41,9 +31,7 @@ def cell_codes(d, countries, waves=(8, 9)):
 
 
 def totals(d, cells, mult=1.0):
-    """Weighted totals of all respondents (den), of those in moderate-to-severe pain (ms)
-    and of those in the primary state (un), by country x wave x age group.
-    mult is a bootstrap multiplier for each record, or 1."""
+    # weighted den / ms / un by country x wave x age group; mult = bootstrap multipliers
     code, shape = cells
     w = d.w.to_numpy() * mult
     n = np.prod(shape)
@@ -52,14 +40,13 @@ def totals(d, cells, mult=1.0):
 
 
 def wave_combined(den, ms, un):
-    """Primary estimator: prevalence within each wave, averaged with equal weight over the
-    waves a country took part in. Returns p and q = p * u by country x age group."""
+    # primary estimator: prevalence within each wave, then the mean over the waves
+    # (NaN for Portugal's wave 8 is skipped). Returns p and q = p * u.
     with np.errstate(invalid="ignore", divide="ignore"):
         return np.nanmean(ms / den, axis=1), np.nanmean(un / den, axis=1)
 
 
 def pooled(den, ms, un):
-    """Pooled respondent-wave estimator: the two waves' weights summed over all records."""
     den, ms, un = den.sum(1), ms.sum(1), un.sum(1)
     return ms / den, un / den
 
@@ -69,28 +56,24 @@ def years(p, q, L):
 
 
 def most_recent(d):
-    """True for the latest record of each person."""
     last = d.sort_values("wave", kind="stable").drop_duplicates("mergeid", keep="last").index
     return d.index.isin(last)
 
 
 def unit_totals(d, cells, recent, mult=1.0):
-    """Totals for both waves, and for the most recent record of each person (waves summed)."""
     both = totals(d, cells, mult)
     last = [t.sum(1) for t in totals(d, cells, mult * recent)]
     return both, last
 
 
 def empty_cell(tot, present):
-    """True if a cell observed in the sample has no weight, or no one in pain, in this
-    replicate. Such a replicate is discarded for every analysis unit."""
+    # a replicate with an empty cell is dropped for all units
     (den, ms, _), (rden, rms, _) = tot
     return ((den[present] <= 0).any() or (ms[present] <= 0).any()
             or (rden <= 0).any() or (rms <= 0).any())
 
 
 def unit_rates(tot):
-    """p and q under each analysis unit of Table S14."""
     (den, ms, un), (rden, rms, run) = tot
     with np.errstate(invalid="ignore", divide="ignore"):
         return {"wave_combined": wave_combined(den, ms, un),
@@ -101,12 +84,10 @@ def unit_rates(tot):
 
 
 def point_rates(d, countries):
-    """p and q under every analysis unit, without resampling."""
     return unit_rates(unit_totals(d, cell_codes(d, countries), most_recent(d)))
 
 
 def primary_bootstrap(d, countries, n_reps, seed=PRIMARY_SEED):
-    """Rates under every analysis unit, at the point estimate and in each valid replicate."""
     cells = cell_codes(d, countries)
     recent = most_recent(d)
     tot = unit_totals(d, cells, recent)
@@ -122,7 +103,6 @@ def primary_bootstrap(d, countries, n_reps, seed=PRIMARY_SEED):
 
 
 def pooled_bootstrap(d, countries, n_reps, seed=POOLED_SEED):
-    """Separate run on the pooled respondent-wave estimator (Tables S3 and S14)."""
     cells = cell_codes(d, countries)
     point = pooled(*totals(d, cells))
     reps = []
@@ -135,14 +115,12 @@ def pooled_bootstrap(d, countries, n_reps, seed=POOLED_SEED):
 
 
 def estimates(p, q, L):
-    """Years in the three states and the pain (P) and medication-use (U) components."""
     out = years(p, q, L)
     _, out["P"], out["U"] = das_gupta(p, q / p, L)
     return out
 
 
 def summarise(countries, point, reps):
-    """One row per country and quantity: estimate, 95% interval, rank and rank interval."""
     rows = []
     for name, est in point.items():
         x = np.array([r[name] for r in reps])
@@ -155,7 +133,6 @@ def summarise(countries, point, reps):
 
 
 def unit_table(countries, point, reps, L):
-    """Table S14 by country: each unit's estimates, intervals and ranks."""
     rows = []
     for unit in ["wave_combined", "wave8", "wave9", "recent"]:
         p, q = point[unit]
@@ -167,7 +144,6 @@ def unit_table(countries, point, reps, L):
 
 
 def unit_summary(table):
-    """Table S14, upper panel: range, extremes and agreement with the primary unit."""
     t = table[table.quantity.eq("primary")]
     main = t[t.unit.eq("wave_combined")].set_index("country").estimate
     rows = []

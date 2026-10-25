@@ -1,23 +1,10 @@
-"""Number of people aged 65+ in the primary state in 2022 and 2050 under fixed rates, and
-static standardisation scenarios.
+"""Counts in 2022 and 2050 at fixed rates, and the 2050 scenarios (Fig. 5, Table S9, S8).
 
-Fig. 5, Additional file 1: Table S9 and Supplementary methods S8.
-
-count = sum over age groups of pop_g * p_g * u_g, with the Eurostat baseline projection
-(proj_23np). The rates are held at their observed values; a scenario replaces one or both
-by min(own value, benchmark), so no country's rate is raised. Benchmarks, by age group:
-the lowest observed u, its 25th percentile and its median across countries, and the median
-of p. Medians are taken with countries weighted equally or by their 2022 population in the
-age group; the lowest value and the 25th percentile always weight countries equally.
-
-Intervals use the replicates of the primary run (seed 20260922), with the benchmarks
-recomputed in each replicate; the projection is held fixed. No interval is given for the
-lowest-value and 25th-percentile benchmarks, whose percentile intervals are biased
-(Supplementary methods S3).
-
-The 85+ sensitivity analysis borrows the rise of the primary state within the open age
-group (85-89, 90-94, 95+), pooled over all countries, and reweights it to each country's
-projected age structure within 85+ in 2050.
+count = sum_g pop_g * p_g * u_g (Eurostat proj_23np). A scenario sets a rate to
+min(own, benchmark). Benchmarks by age group: lowest u, 25th percentile of u, median u,
+median p. Medians: countries equal or weighted by 2022 population; lowest and p25 are
+always country-equal and get no interval (methods S3). Benchmarks are recomputed in
+every replicate of the primary run.
 """
 
 import numpy as np
@@ -32,7 +19,6 @@ NO_INTERVAL = ["u_lowest", "u_p25"]
 
 
 def weighted_median(x, w):
-    """Smallest value whose cumulative weight reaches half the total."""
     order = np.argsort(x, kind="stable")
     cum = np.cumsum(w[order]) / w.sum()
     return x[order][np.searchsorted(cum, 0.5)]
@@ -55,7 +41,6 @@ def scenario_rates(p, u, pop22, convention):
 
 
 def project(p, u, pop22, pop50, convention):
-    """Counts by country in 2022 and 2050, and the 2050 reduction from the baseline."""
     base50 = (pop50 * p * u).sum(1)
     out = {}
     for s, (ps, us) in scenario_rates(p, u, pop22, convention).items():
@@ -65,8 +50,8 @@ def project(p, u, pop22, pop50, convention):
 
 
 def oldest_old_shift(d, countries):
-    """Relative change in each country's 85+ prevalence of the primary state when the pooled
-    within-85+ age pattern is reweighted from the 2022 to the 2050 age structure."""
+    # pooled prevalence in 85-89 / 90-94 / 95+, reweighted from the 2022 to the 2050
+    # age structure of each country
     old = d[d.agey.ge(85)]
     band = pd.cut(old.agey, [85, 90, 95, np.inf], right=False, labels=["85-89", "90-94", "95+"])
     prev = old.w.mul(old.un).groupby(band, observed=True).sum() / old.w.groupby(band, observed=True).sum()

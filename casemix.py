@@ -1,19 +1,10 @@
-"""Case-mix standardisation for measured health and functional status by G-computation.
+"""G-computation case-mix standardisation (Table S7, methods S5).
 
-Additional file 1: Table S7 and Supplementary methods S5.
-
-Two weighted logistic models are fitted to the records with complete indicators, each with
-country indicators, five-year age group and sex: moderate-to-severe pain among all
-respondents (P model), and no weekly pain medication among those in pain (U model, which
-also has an indicator of severe pain). The indicators enter as linear terms. For each
-country, its coefficient is given to every respondent of the pooled sample, predictions
-are averaged within age group with the respondent weights, and the standardised rates go
-through the Sullivan calculation. Unadjusted models are the same models without the
-indicators, on the same records.
-
-Dispersion of the country effects is summarised by the mean absolute deviation from their
-mean, which does not depend on the reference country. Intervals: Rao-Wu bootstrap with all
-models refitted in each replicate (seed 20260921). The full run takes about 15 minutes on a recent laptop.
+Weighted logits on complete cases, with country, age group and sex: pain among everyone
+(P model) and no weekly pain medication among those in pain (U model, + severe pain).
+Each country's coefficient is applied to the whole pooled sample, predictions averaged by
+age group, then the Sullivan sum. "Unadjusted" = same models without the indicators.
+Spread of country effects: mean absolute deviation (does not depend on the reference).
 """
 
 import numpy as np
@@ -34,7 +25,6 @@ INDICATORS = {
 
 
 class Logit:
-    """One logistic model; refitted in each replicate starting from the point estimate."""
 
     def __init__(self, d, countries, outcome, covariates):
         cols = [np.ones(len(d))]
@@ -51,8 +41,6 @@ class Logit:
         self.start = None
 
     def standardised(self, mult):
-        """Country effects (logit scale, first country = 0) and standardised rates by
-        country x age group."""
         w = self.w * mult[self.rows]
         keep = w > 0
         fit = sm.GLM(self.y[keep], self.X[keep], family=sm.families.Binomial(), var_weights=w[keep])
@@ -83,8 +71,7 @@ def fit_models(d, countries, indicators):
 
 
 def estimate(models, mult, primary, L):
-    """By-country quantities and summary statistics for one set of multipliers.
-    primary: pooled respondent-wave estimate on all records, for comparison."""
+    # primary = pooled respondent-wave estimate on all records, for the comparison
     (p0_eff, p0), (p1_eff, p1), (u0_eff, u0), (u1_eff, u1) = (m.standardised(mult) for m in models)
     y0, y1 = (L * p0 * u0).sum(1), (L * p1 * u1).sum(1)
     by_country = {"P_effect": p1_eff, "U_effect": u1_eff, "years_standardised": y1,
@@ -129,7 +116,7 @@ def main():
         for name, m in models.items():
             boot[name].append(estimate(m, mult, primary, L))
         if r % 100 == 0:
-            print(f"{r} replicates", flush=True)
+            print(f"{r} replicates", flush=True)        # ~15 min for 1,000
 
     by_country, summary = [], []
     for name, (est_c, est_s) in point.items():

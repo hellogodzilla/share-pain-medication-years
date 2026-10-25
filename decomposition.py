@@ -1,17 +1,10 @@
-"""Pairwise symmetric Das Gupta decomposition and component profiles.
+"""Symmetric Das Gupta decomposition (Table 2, Fig. 2, Table S3, methods S4).
 
-Table 2, Fig. 2, Additional file 1: Table S3 and Supplementary methods S4.
-
-For two countries c and j with years = sum_g L_g p_g u_g, the difference splits into
-  P_cj = sum_g L_g (u_cg + u_jg)/2 (p_cg - p_jg)    pain component
-  U_cj = sum_g L_g (p_cg + p_jg)/2 (u_cg - u_jg)    medication-use component
-and P_cj + U_cj = years_c - years_j. A country's P and U average its comparisons with all
-countries in the pool, itself included (which adds zero). With equal weights P + U equals
-the difference from the country mean; weighting the comparisons by population aged 65+
-gives the difference from the population-weighted mean instead.
-
-Run as a script, it writes Table S3 (pooled respondent-wave estimator; bootstrap seed
-20260920) and the comparison of the two reference points.
+For countries c and j:
+  P_cj = sum_g L_g (u_cg + u_jg)/2 (p_cg - p_jg)
+  U_cj = sum_g L_g (p_cg + p_jg)/2 (u_cg - u_jg)
+so P_cj + U_cj = years_c - years_j. Averaging over all j (c included) gives P + U = the
+difference from the country mean; population weights give the weighted mean instead.
 """
 
 import numpy as np
@@ -22,8 +15,6 @@ from prepare import options, population, primary_records, results_dir
 
 
 def das_gupta(p, u, L, weight=None):
-    """years, P and U for every country. weight: None for country-equal, or each country's
-    share of the population aged 65+."""
     yrs = (L * p * u).sum(1)
     P = (L * (u[:, None] + u[None]) / 2 * (p[:, None] - p[None])).sum(2)
     U = (L * (p[:, None] + p[None]) / 2 * (u[:, None] - u[None])).sum(2)
@@ -33,7 +24,6 @@ def das_gupta(p, u, L, weight=None):
 
 
 def profile(yrs, P, U, reference=None):
-    """Above or below the reference, and which component is larger in absolute value."""
     if reference is None:
         reference = yrs.mean()
     side = np.where(yrs > reference, "above mean", "below mean")
@@ -42,7 +32,6 @@ def profile(yrs, P, U, reference=None):
 
 
 def leave_one_out(p, u, L):
-    """How many times each country's profile changes when one other country is left out."""
     labels = profile(*das_gupta(p, u, L))
     changes = np.zeros(len(p), int)
     for j in range(len(p)):
@@ -52,7 +41,6 @@ def leave_one_out(p, u, L):
 
 
 def population_share(countries):
-    """Each country's share of the 2022 population aged 65+ of the pool (Eurostat)."""
     pop = population(countries, 2022).sum(1)
     return pop / pop.sum()
 

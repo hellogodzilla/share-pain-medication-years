@@ -1,11 +1,6 @@
-"""Sample description.
+"""Table 1A, the first rows of Table 1B, and the pain-item distribution (S1).
 
-Table 1A (by country), the demographic rows of Table 1B (by pain and medication state) and
-the response distribution in Additional file 1, S1.
-
-Table 1A uses the pooled respondent weights (the two waves' weights summed). Table 1B and
-S1 weight within each wave across the 26 countries and average the two waves with equal
-weight, as the primary estimator does.
+1A: pooled respondent weights. 1B and S1: within-wave weights, waves averaged.
 """
 
 import numpy as np
@@ -32,7 +27,6 @@ def by_country(d):
 
 
 def wave_averaged(d, value):
-    """Weighted mean of value within each wave, averaged over the two waves."""
     return np.mean([np.average(value[g.index], weights=g.w) for _, g in d.groupby("wave")])
 
 
