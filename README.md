@@ -15,7 +15,7 @@ The primary state is moderate-to-severe pain without reported weekly pain-medica
 | `sullivan.py` | Life tables, the wave-combined primary estimator, the four analysis units and the pooled respondent-wave estimator; Sullivan years with intervals and rank intervals; estimates on each country's own life table | Table 2, Fig. 1, Fig. S1; Tables S4, S14 |
 | `decomposition.py` | Pairwise symmetric Das Gupta decomposition into a pain (P) and a medication-use (U) component; profiles, leave-one-country-out stability and bootstrap probabilities; country-mean against population-weighted reference | Table 2, Fig. 2; Table S3; S4 |
 | `describe.py` | Sample by country; demographic rows of the comparison by pain and medication state; response distribution of the pain item | Table 1A, Table 1B (first eight rows); S1 |
-| `trend.py` | Change from 2013 to 2021–22 and over the two shorter windows, with its P and U components | Fig. 4; Table S8 |
+| `trend.py` | Country changes from 2013 to 2021–22 and over the two shorter windows, with P and U components | Country rows of Fig. 4 and Table S8 |
 | `projection.py` | Counts in 2022 and 2050 at fixed rates; static standardisation scenarios under both benchmark conventions; within-85+ reweighting | Fig. 5; Table S9; S8 |
 | `strata.py` | Primary outcome by sex (three sets of life tables) and by education | Tables S10, S11 |
 | `casemix.py` | G-computation standardisation for nine health and functional-status indicators, and for three of them | Table S7; S5 |
@@ -68,7 +68,7 @@ Any script can be run on its own, for example `python sullivan.py --reps 200`. T
 
 ## Not included
 
-Analyses that need variables outside the three files above are not part of this repository: proxy-assisted and nursing-home interviews (Tables S2 and S15 and their rows in Table S17), the characteristics in Table 1B beyond its first eight rows and in Table S12, the within-question calibration (Table S16), diagnosed arthritis (Table S19, Fig. 3), deaths and non-interview in panel A of Table S18, and the participant flow (Table S1). The partial-pooling check (Table S6) and the scenarios with the Health and Retirement Study (Table S5) are also not included.
+Analyses that need variables outside the three files above are not part of this repository: proxy-assisted and nursing-home interviews (Tables S2 and S15 and their rows in Table S17), the characteristics in Table 1B beyond its first eight rows and in Table S12, the within-question calibration (Table S16), diagnosed arthritis (Table S19, Fig. 3), deaths and non-interview in panel A of Table S18, and the participant flow (Table S1). Also not included: partial pooling (Table S6), the Health and Retirement Study scenarios (Table S5), the cross-country median changes and their intervals (Fig. 4, Table S8) and the representation of the oldest old (Additional file 1, S10).
 
 ## Software
 
