@@ -2,6 +2,7 @@
 
 Countries of the primary pool with >= 30 respondents per age group in both waves. PSUs are
 resampled across both waves, so panel members keep one multiplier. Seed reset per window.
+The last row of each window is the cross-country median, with intervals from the replicate medians.
 """
 
 import numpy as np
@@ -57,7 +58,11 @@ def main():
         for label, x in [("change", P_rep + U_rep), ("P_component", P_rep), ("U_component", U_rep)]:
             res[f"{label}_ci_low"] = np.nanquantile(x, 0.025, axis=0)
             res[f"{label}_ci_high"] = np.nanquantile(x, 0.975, axis=0)
-        tables.append(res)
+        med = {"window": name, "country": "median", "change": np.median(yrs[:, 1] - yrs[:, 0]),
+               "P_component": np.median(P), "U_component": np.median(U)}
+        for label, x in [("change", P_rep + U_rep), ("P_component", P_rep), ("U_component", U_rep)]:
+            med[f"{label}_ci_low"], med[f"{label}_ci_high"] = np.nanquantile(np.nanmedian(x, axis=1), [0.025, 0.975])
+        tables.append(pd.concat([res, pd.DataFrame([med])], ignore_index=True))
         print(f"{name}: {len(countries)} countries")
 
     pd.concat(tables).to_csv(out / "tableS8_trend.csv", index=False)
